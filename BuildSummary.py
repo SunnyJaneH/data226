@@ -56,6 +56,22 @@ def run_ctas(database, schema, table, select_sql, primary_key=None):
             result = cur.fetchone()
             if result:
                 raise Exception(f"Primary key uniqueness failed: {result}")
+        
+        # Second check for redundancy
+        if primary_key is not None:
+            sql = f"""
+                SELECT {primary_key}, COUNT(1) AS cnt 
+                FROM {database}.{schema}.temp_{table}
+                GROUP BY 1
+                ORDER BY 2 DESC
+                LIMIT 1"""
+            print(sql)
+            cur.execute(sql)
+            result = cur.fetchone()
+            print(result, result[1])
+            if int(result[1]) > 1:
+                print("!!!!!!!!!!!!!!")
+                raise Exception(f"Primary key uniqueness failed: {result}")
 
         # Replace the main table with the cleaned data
         sql = f"CREATE OR REPLACE TABLE {database}.{schema}.{table} AS SELECT * FROM {database}.{schema}.temp_{table};"
